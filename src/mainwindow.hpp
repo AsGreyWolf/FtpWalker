@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QtWidgets/QLabel>
 #include <QtWidgets/QMainWindow>
 #include <memory>
 
@@ -20,6 +21,7 @@ private:
 	bool startEnabled;
 	std::unique_ptr<Ui::MainWindow> ui;
 	std::unique_ptr<HttpWalker> walker;
+	std::unique_ptr<QLabel> status;
 
 signals:
 	void startGrabbing(const std::string &url);

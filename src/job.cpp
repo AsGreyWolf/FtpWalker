@@ -1,6 +1,6 @@
 #include "job.hpp"
 
-#include <iostream>
+// #include <iostream>
 #include <regex>
 
 std::string collapse(std::string s) {
@@ -18,8 +18,8 @@ std::string collapse(std::string s) {
 	}
 	return s;
 }
+std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*"};
 std::string fix_link(job *job_ptr, std::string link, bool &external) {
-	std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*"};
 	std::smatch m;
 	external = std::regex_match(link, m, re_ext);
 	if (external && m[1] == "http" && m[2] == job_ptr->host) {
@@ -75,7 +75,7 @@ void job::send(std::unique_ptr<job> job_ptr) {
 		    if (!ec) {
 			    return read_status(move(job_ptr));
 		    }
-		    std::cerr << "Error: " << ec << std::endl;
+		    // std::cerr << "Error: " << ec << std::endl;
 		    return job_ptr->complete(job_ptr->path, 2, {});
 	    });
 }
@@ -97,10 +97,11 @@ void job::read_status(std::unique_ptr<job> job_ptr) {
 				    return read_header(move(job_ptr));
 			    }
 		    }
-		    std::cerr << "Error: " << ec << std::endl;
+		    // std::cerr << "Error: " << ec << std::endl;
 		    return job_ptr->complete(job_ptr->path, 0, {});
 	    });
 }
+std::regex re_header_line{R"R(([^:]*):\s*([^;]*)(?:;\s*(.*))?\r)R"};
 void job::read_header(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_HEADER " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
@@ -114,9 +115,8 @@ void job::read_header(std::unique_ptr<job> job_ptr) {
 			    while (std::getline(is, line)) {
 				    if (line == "\r")
 					    break;
-				    std::regex header_line{R"R(([^:]*):\s*([^;]*)(?:;\s*(.*))?\r)R"};
 				    std::smatch m;
-				    if (std::regex_match(line, m, header_line)) {
+				    if (std::regex_match(line, m, re_header_line)) {
 					    job_ptr->header[m[1]] = m[2];
 				    } else {
 				    }
@@ -142,10 +142,12 @@ void job::read_header(std::unique_ptr<job> job_ptr) {
 			    }
 			    return job_ptr->complete(job_ptr->path, job_ptr->status, {});
 		    }
-		    std::cerr << "Error: " << ec << std::endl;
+		    // std::cerr << "Error: " << ec << std::endl;
 		    return job_ptr->complete(job_ptr->path, 1, {});
 	    });
 }
+std::regex re_ahref{
+    R"R(<a(?:\s|\s[^>]*\s)href\s*=\s*("[^>"]*"|'[^>']*'|[^\s>]*)[^>]*>)R"};
 void job::recieve(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_CONTENT " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
@@ -159,9 +161,7 @@ void job::recieve(std::unique_ptr<job> job_ptr) {
 			    std::vector<std::string> links;
 			    std::string buf(std::istreambuf_iterator<char>{&job_ptr->read_buffer},
 			                    {});
-			    std::regex ahref{
-			        R"R(<a.*href\s*=\s*("[^>"]*"|'[^>']*'|[^\s>]*)[^>]*>)R"};
-			    auto begin = std::sregex_iterator(buf.begin(), buf.end(), ahref);
+			    auto begin = std::sregex_iterator(buf.begin(), buf.end(), re_ahref);
 			    auto end = std::sregex_iterator{};
 			    for (auto it = begin; it != end; it++) {
 				    std::string link = (*it)[1];
@@ -174,7 +174,7 @@ void job::recieve(std::unique_ptr<job> job_ptr) {
 			    }
 			    return job_ptr->complete(job_ptr->path, job_ptr->status, move(links));
 		    }
-		    std::cerr << "Error: " << ec << std::endl;
+		    // std::cerr << "Error: " << ec << std::endl;
 		    return job_ptr->complete(job_ptr->path, 0, {});
 	    });
 }
