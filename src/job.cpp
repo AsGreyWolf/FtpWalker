@@ -1,6 +1,5 @@
 #include "job.hpp"
 
-// #include <iostream>
 #include <regex>
 
 std::string collapse(std::string s) {
@@ -18,7 +17,9 @@ std::string collapse(std::string s) {
 	}
 	return s;
 }
-std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*"};
+std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*",
+                  std::regex_constants::ECMAScript |
+                      std::regex_constants::optimize};
 std::string fix_link(job *job_ptr, std::string link, bool &external) {
 	std::smatch m;
 	external = std::regex_match(link, m, re_ext);
@@ -103,7 +104,9 @@ void job::read_status(std::unique_ptr<job> job_ptr) {
 		    return job_ptr->complete(job_ptr->path, 0, {});
 	    });
 }
-std::regex re_header_line{R"R(([^:]*):\s*([^;]*)(?:;\s*(.*))?\r)R"};
+std::regex re_header_line{R"R(([^:]*):\s*([^;]*)(?:;\s*(.*))?\r)R",
+                          std::regex_constants::ECMAScript |
+                              std::regex_constants::optimize};
 void job::read_header(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_HEADER " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
@@ -149,7 +152,9 @@ void job::read_header(std::unique_ptr<job> job_ptr) {
 	    });
 }
 std::regex re_ahref{
-    R"R(<a(?:\s|\s[^>]*\s)href\s*=\s*("[^>"]*"|'[^>']*'|[^\s>]*)[^>]*>)R"};
+    R"R(<a(?:\s|\s[^>]*\s)href\s*=\s*("[^>"]*"|'[^>']*'|[^\s>]*)[^>]*>)R",
+    std::regex_constants::ECMAScript | std::regex_constants::optimize |
+        std::regex_constants::icase};
 void job::recieve(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_CONTENT " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
