@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(walker.get(), &HttpWalker::foundItem, this,
 	        [&](QString url, unsigned short code) {
 		        std::cout << url.toStdString() << " " << code << std::endl;
-		        if (code != 200) {
+		        if (code >= 400) {
 			        ui->listWidget->addItem(url + " " + QString::number(code));
 		        }
 	        },

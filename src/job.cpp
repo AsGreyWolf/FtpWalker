@@ -66,6 +66,8 @@ void job::send(std::unique_ptr<job> job_ptr) {
 	std::ostream os{&raw_ptr->write_buffer};
 	os << "GET " << raw_ptr->path << " HTTP/1.0\r\n"
 	   << "Host: " << raw_ptr->host << "\r\n"
+	   << "User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:52.0) "
+	      "Gecko/20100101 Firefox/52.0\r\n"
 	   << "Accept: */*\r\n"
 	   << "Connection: close\r\n\r\n";
 	boost::asio::async_write(
