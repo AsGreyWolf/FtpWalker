@@ -45,7 +45,7 @@ Walk::Walk(HttpWalker *emitter, std::string url)
 			    t = std::async(std::launch::async, [&ctx = state->ctx] { ctx.run(); });
 	    });
 }
-Walk::~Walk() {}
+Walk::~Walk() { pimpl_->ctx.stop(); }
 
 std::string collapse(std::string s) {
 	s = s.substr(0, s.find('#'));
@@ -64,15 +64,15 @@ std::string collapse(std::string s) {
 }
 void Walk::impl::enqueue(const std::string &raw_path) {
 	std::string path = collapse(raw_path);
+	using std::chrono::operator""s;
+	if (stop.wait_for(0s) != std::future_status::timeout) {
+		// std::cout << "TIMEOUT " << path << std::endl;
+		return;
+	}
 	{
 		std::lock_guard lk{enqueued_mutex};
 		if (enqueued.find(path) != enqueued.end())
 			return;
-		using std::chrono::operator""s;
-		if (stop.wait_for(0s) != std::future_status::timeout) {
-			// std::cout << "TIMEOUT " << path << std::endl;
-			return;
-		}
 		// std::cout << "ENQUEUE " << path << std::endl;
 		enqueued.insert(path);
 		emit emitter->progress(visited.size(), enqueued.size());

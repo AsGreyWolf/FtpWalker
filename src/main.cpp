@@ -1,11 +1,9 @@
-#include "app.hpp"
 #include "mainwindow.hpp"
-
-std::unique_ptr<QApplication> app;
+#include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[]) {
-	app = std::make_unique<QApplication>(argc, argv);
+	QApplication app(argc, argv);
 	MainWindow w;
 	w.show();
-	return app->exec();
+	return app.exec();
 }
