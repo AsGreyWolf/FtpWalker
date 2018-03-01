@@ -22,7 +22,9 @@ public slots:
 	void stop();
 signals:
 	void foundItem(QString url, unsigned short code);
+	void started();
 	void progress(size_t current, size_t all);
+	void finished();
 };
 
 #endif /* end of include guard: HTTP_WALKER_H */

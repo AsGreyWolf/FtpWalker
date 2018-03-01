@@ -3,16 +3,59 @@
 #include <iostream>
 #include <regex>
 
+std::string collapse(std::string s) {
+	s = s.substr(0, s.find('#'));
+	while (true) {
+		size_t pos = s.find("/../");
+		if (pos == std::string::npos)
+			break;
+		if (pos == 0)
+			break;
+		size_t start = s.rfind('/', pos - 1);
+		if (start == std::string::npos)
+			break;
+		s.replace(start, pos + 3 - start, "");
+	}
+	return s;
+}
+std::string fix_link(job *job_ptr, std::string link, bool &external) {
+	std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*"};
+	std::smatch m;
+	external = std::regex_match(link, m, re_ext);
+	if (external && m[1] == "http" && m[2] == job_ptr->host) {
+		external = false;
+		link = m[3];
+	}
+	external |= link.find(' ') != std::string::npos;
+	if (!external) {
+		if (link[0] != '/')
+			link = job_ptr->path.substr(0, job_ptr->path.rfind('/') + 1) + link;
+		size_t param_pos = link.find('?');
+		if (param_pos != std::string::npos) {
+			size_t pos = param_pos;
+			while (true) {
+				pos = link.find("&amp;", pos + 1);
+				if (pos == std::string::npos)
+					break;
+				link.replace(pos, 5, "&");
+			}
+		}
+		link = collapse(link);
+	}
+	return link;
+}
 void job::connect(std::unique_ptr<job> job_ptr,
                   boost::asio::ip::tcp::resolver::endpoint_type endpoint) {
 	// std::cout << "CONNECT " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
-	raw_ptr->socket.async_connect(
-	    endpoint, [job_ptr = move(job_ptr)](boost::system::error_code ec) mutable {
-		    if (!ec) {
-			    send(move(job_ptr));
-		    }
-	    });
+	raw_ptr->socket.async_connect(endpoint,
+	                              [ job_ptr = move(job_ptr), endpoint ](
+	                                  boost::system::error_code ec) mutable {
+		                              if (!ec) {
+			                              return send(move(job_ptr));
+		                              }
+		                              return job::connect(move(job_ptr), endpoint);
+	                              });
 }
 void job::send(std::unique_ptr<job> job_ptr) {
 	// std::cout << "SEND " << job_ptr->path << std::endl;
@@ -27,8 +70,10 @@ void job::send(std::unique_ptr<job> job_ptr) {
 	    [job_ptr = move(job_ptr)](boost::system::error_code ec,
 	                              std::size_t bytes_transferred) mutable {
 		    if (!ec) {
-			    read_status(move(job_ptr));
+			    return read_status(move(job_ptr));
 		    }
+		    std::cerr << "Error: " << ec << std::endl;
+		    return job_ptr->complete(job_ptr->path, 2, {});
 	    });
 }
 void job::read_status(std::unique_ptr<job> job_ptr) {
@@ -46,11 +91,56 @@ void job::read_status(std::unique_ptr<job> job_ptr) {
 			    std::getline(is, code_msg);
 			    if (is && version.substr(0, 5) == "HTTP/") {
 				    job_ptr->status = code;
-				    return recieve(move(job_ptr));
+				    return read_header(move(job_ptr));
 			    }
 		    }
-		    job_ptr->complete(job_ptr->path, 0, {});
 		    std::cerr << "Error: " << ec << std::endl;
+		    return job_ptr->complete(job_ptr->path, 0, {});
+	    });
+}
+void job::read_header(std::unique_ptr<job> job_ptr) {
+	// std::cout << "READ_HEADER " << job_ptr->path << std::endl;
+	auto raw_ptr = job_ptr.get();
+	boost::asio::async_read_until(
+	    raw_ptr->socket, raw_ptr->read_buffer, "\r\n\r\n",
+	    [job_ptr = move(job_ptr)](boost::system::error_code ec,
+	                              std::size_t lem) mutable {
+		    if (!ec) {
+			    std::istream is{&job_ptr->read_buffer};
+			    std::string line;
+			    while (std::getline(is, line)) {
+				    if (line == "\r")
+					    break;
+				    std::regex header_line{R"R(([^:]*):\s*([^;]*)(?:;\s*(.*))?\r)R"};
+				    std::smatch m;
+				    if (std::regex_match(line, m, header_line)) {
+					    job_ptr->header[m[1]] = m[2];
+				    } else {
+				    }
+			    }
+			    if (job_ptr->status >= 300 && job_ptr->status < 400) {
+				    std::vector<std::string> links;
+				    if (!job_ptr->header["Location"].empty())
+					    links.push_back(job_ptr->header["Location"]);
+				    if (!job_ptr->header["Content-Location"].empty())
+					    links.push_back(job_ptr->header["Content-Location"]);
+				    std::vector<std::string> internal_links;
+				    for (auto link : links) {
+					    bool external;
+					    link = fix_link(job_ptr.get(), job_ptr->header["Location"], external);
+					    if (!external)
+						    internal_links.push_back(link);
+				    }
+				    return job_ptr->complete(job_ptr->path, job_ptr->status,
+				                             move(internal_links));
+			    }
+			    if (job_ptr->header["Content-Type"] == "text/html") {
+				    return recieve(move(job_ptr));
+			    }
+			    return job_ptr->complete(job_ptr->path, job_ptr->status, {});
+		    }
+		    std::cerr << "Error: " << ec << std::endl;
+		    return job_ptr->complete(job_ptr->path, 1, {});
 	    });
 }
 void job::recieve(std::unique_ptr<job> job_ptr) {
@@ -66,35 +156,22 @@ void job::recieve(std::unique_ptr<job> job_ptr) {
 			    std::vector<std::string> links;
 			    std::string buf(std::istreambuf_iterator<char>{&job_ptr->read_buffer},
 			                    {});
-			    std::regex ahref{"<\\s*a.*href\\s*=\\s*(\"[^\"]*\"|\'[^\']*\'|\\S*)"};
+			    std::regex ahref{
+			        R"R(<a.*href\s*=\s*("[^>"]*"|'[^>']*'|[^\s>]*)[^>]*>)R"};
 			    auto begin = std::sregex_iterator(buf.begin(), buf.end(), ahref);
 			    auto end = std::sregex_iterator{};
 			    for (auto it = begin; it != end; it++) {
 				    std::string link = (*it)[1];
 				    if (link[0] == '\'' || link[0] == '"')
 					    link = link.substr(1, link.size() - 2);
-				    std::regex external{"\\w*:.*"};
-				    if (!std::regex_match(link, external)) {
-					    if (link[0] != '/')
-						    link = job_ptr->path.substr(0, job_ptr->path.rfind('/') + 1) + link;
-					    size_t param_pos = link.find('?');
-					    if (param_pos != std::string::npos) {
-						    size_t pos = param_pos;
-						    while (true) {
-							    pos = link.find("&amp;", pos + 1);
-							    if (pos == std::string::npos)
-								    break;
-							    link.replace(pos, 5, "&");
-						    }
-					    }
+				    bool external;
+				    link = fix_link(job_ptr.get(), link, external);
+				    if (!external)
 					    links.push_back(link);
-				    }
 			    }
-			    job_ptr->complete(job_ptr->path, job_ptr->status, move(links));
-			    using std::chrono::operator""s;
-		    } else {
-			    job_ptr->complete(job_ptr->path, 0, {});
-			    std::cerr << "Error: " << ec << std::endl;
+			    return job_ptr->complete(job_ptr->path, job_ptr->status, move(links));
 		    }
+		    std::cerr << "Error: " << ec << std::endl;
+		    return job_ptr->complete(job_ptr->path, 0, {});
 	    });
 }

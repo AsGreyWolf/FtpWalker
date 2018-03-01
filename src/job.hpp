@@ -3,6 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <functional>
+#include <map>
 #include <string>
 
 struct job {
@@ -12,6 +13,7 @@ struct job {
 	std::function<void(const std::string &url, unsigned short status,
 	                   std::vector<std::string> links)>
 	    complete;
+	std::map<std::string, std::string> header;
 	boost::asio::streambuf write_buffer;
 	boost::asio::streambuf read_buffer;
 	unsigned short status = -1;
@@ -27,6 +29,7 @@ struct job {
 	                    boost::asio::ip::tcp::resolver::endpoint_type endpoints);
 	static void send(std::unique_ptr<job> job_ptr);
 	static void read_status(std::unique_ptr<job> job_ptr);
+	static void read_header(std::unique_ptr<job> job_ptr);
 	static void recieve(std::unique_ptr<job> job_ptr);
 };
 

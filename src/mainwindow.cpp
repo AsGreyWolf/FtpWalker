@@ -25,18 +25,28 @@ MainWindow::MainWindow(QWidget *parent)
 		        ui->progressBar->setValue(current);
 	        },
 	        Qt::QueuedConnection);
+	connect(walker.get(), &HttpWalker::started, this,
+	        [&]() {
+		        ui->listWidget->clear();
+		        startEnabled = false;
+		        ui->startButton->setText("Stop");
+		        ui->urlEdit->setEnabled(false);
+	        },
+	        Qt::QueuedConnection);
+	connect(walker.get(), &HttpWalker::finished, this,
+	        [&]() {
+		        startEnabled = true;
+		        ui->startButton->setText("Start");
+		        ui->urlEdit->setEnabled(true);
+	        },
+	        Qt::QueuedConnection);
 	connect(ui->startButton, &QPushButton::clicked, [=, this] {
 		if (startEnabled) {
-			ui->startButton->setText("Stop");
-			ui->urlEdit->setEnabled(false);
 			std::string url = ui->urlEdit->text().toStdString();
 			emit startGrabbing(url);
 		} else {
-			ui->startButton->setText("Start");
-			ui->urlEdit->setEnabled(true);
 			emit stopGrabbing();
 		}
-		startEnabled = !startEnabled;
 	});
 }
 MainWindow::~MainWindow() {}
