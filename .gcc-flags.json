@@ -1,0 +1,6 @@
+{
+  "execPath": "g++",
+  "gccDefaultCFlags": "-c -Wall -Wextra -std=c14",
+  "gccDefaultCppFlags": "-c -Wall -Wextra -Weffc++ -std=c++17 -fPIC",
+  "gccIncludePaths": ".,/usr/include/qt"
+}
