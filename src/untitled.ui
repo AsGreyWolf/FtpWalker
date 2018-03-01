@@ -36,7 +36,11 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="urlEdit"/>
+         <widget class="QLineEdit" name="urlEdit">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
         <item>
          <widget class="QProgressBar" name="progressBar">

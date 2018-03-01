@@ -28,8 +28,11 @@ std::string fix_link(job *job_ptr, std::string link, bool &external) {
 	}
 	external |= link.find(' ') != std::string::npos;
 	if (!external) {
-		if (link[0] != '/')
+		if (link[0] != '/') {
+			while (link.substr(0, 2) == "./")
+				link = link.substr(2);
 			link = job_ptr->path.substr(0, job_ptr->path.rfind('/') + 1) + link;
+		}
 		size_t param_pos = link.find('?');
 		if (param_pos != std::string::npos) {
 			size_t pos = param_pos;
