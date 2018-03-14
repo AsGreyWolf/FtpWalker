@@ -1,10 +1,10 @@
 #ifndef WALK_HPP
 #define WALK_HPP
 
+#include <functional>
 #include <future>
 #include <unordered_set>
 
-class HttpWalker;
 class Walk {
 	class impl;
 	std::unique_ptr<impl> pimpl_;
@@ -19,7 +19,10 @@ public:
 	Walk(Walk &&second) = default;
 	Walk &operator=(Walk &&) = default;
 
-	Walk(HttpWalker *emitter, std::string url);
+	Walk(std::string url, std::function<void()> started,
+	     std::function<void()> finished,
+	     std::function<void(size_t, size_t)> progress,
+	     std::function<void(std::string, unsigned short)> found);
 
 	~Walk();
 };

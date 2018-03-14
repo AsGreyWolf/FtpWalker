@@ -1,6 +1,5 @@
 #include "Walk.hpp"
 
-#include "HttpWalker.hpp"
 #include "job.hpp"
 #include <boost/asio.hpp>
 // #include <iostream>
@@ -9,8 +8,11 @@
 using std::move;
 
 struct Walk::impl {
-	HttpWalker *emitter;
 	std::string host;
+	std::function<void()> started;
+	std::function<void()> finished;
+	std::function<void(size_t, size_t)> progress;
+	std::function<void(std::string, unsigned short)> found;
 
 	boost::asio::ip::tcp::resolver::endpoint_type endpoint;
 	std::mutex enqueued_mutex;
@@ -23,16 +25,22 @@ struct Walk::impl {
 	void enqueue(const std::string &url);
 };
 
-Walk::Walk(HttpWalker *emitter, std::string url)
+Walk::Walk(std::string url, std::function<void()> started,
+           std::function<void()> finished,
+           std::function<void(size_t, size_t)> progress,
+           std::function<void(std::string, unsigned short)> found)
     : pimpl_{std::make_unique<Walk::impl>()} {
 	// std::cout << "WALK CONSTRUCTOR" << std::endl;
-	pimpl_->emitter = emitter;
 	pimpl_->host = url.substr(0, url.find('/'));
+	pimpl_->started = move(started);
+	pimpl_->finished = move(finished);
+	pimpl_->progress = move(progress);
+	pimpl_->found = move(found);
 	std::string path = url.substr(url.find('/'));
 	pimpl_->stop = to_stop_.get_future();
 	task_ = std::async(
 	    std::launch::async, [ state = pimpl_.get(), path = move(path) ] {
-		    emit state->emitter->started();
+		    state->started();
 		    {
 			    boost::asio::ip::tcp::resolver resolver{state->ctx};
 			    auto endpoints = resolver.resolve({state->host, "80"});
@@ -47,7 +55,7 @@ Walk::Walk(HttpWalker *emitter, std::string url)
 			    for (auto &t : cotasks)
 				    t = std::async(std::launch::async, [&ctx = state->ctx] { ctx.run(); });
 		    }
-		    emit state->emitter->finished();
+		    state->finished();
 	    });
 }
 Walk::~Walk() { pimpl_->ctx.stop(); }
@@ -64,7 +72,7 @@ void Walk::impl::enqueue(const std::string &path) {
 			return;
 		// std::cout << "ENQUEUE " << path << std::endl;
 		enqueued.insert(path);
-		emit emitter->progress(visited.size(), enqueued.size());
+		progress(visited.size(), enqueued.size());
 	}
 	auto job_ptr = std::make_unique<job>(
 	    ctx, host, path,
@@ -75,9 +83,9 @@ void Walk::impl::enqueue(const std::string &path) {
 			    visited.insert(path);
 			    // std::cout << "FOUND " << path <<
 			    // std::endl;
-			    emit emitter->progress(visited.size(), enqueued.size());
+			    progress(visited.size(), enqueued.size());
 		    }
-		    emit emitter->foundItem(QString(path.c_str()), status);
+		    found(path, status);
 		    for (auto &link : links)
 			    enqueue(link);
 	    });

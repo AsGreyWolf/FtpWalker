@@ -19,13 +19,39 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="1,10">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="100,1">
       <property name="sizeConstraint">
        <enum>QLayout::SetDefaultConstraint</enum>
       </property>
       <property name="margin">
        <number>0</number>
       </property>
+      <item>
+       <widget class="QTableWidget" name="tableWidget">
+        <property name="sortingEnabled">
+         <bool>true</bool>
+        </property>
+        <property name="columnCount">
+         <number>2</number>
+        </property>
+        <attribute name="horizontalHeaderHighlightSections">
+         <bool>true</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
+        </attribute>
+        <column>
+         <property name="text">
+          <string>PATH</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>CODE</string>
+         </property>
+        </column>
+       </widget>
+      </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,10,0,0">
         <item>
@@ -60,9 +86,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item>
-       <widget class="QListWidget" name="listWidget"/>
       </item>
      </layout>
     </item>

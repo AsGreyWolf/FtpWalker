@@ -16,7 +16,13 @@ MainWindow::MainWindow(QWidget *parent)
 	        [&](QString url, unsigned short code) {
 		        std::cout << url.toStdString() << " " << code << std::endl;
 		        if (code >= 400) {
-			        ui->listWidget->addItem(url + " " + QString::number(code));
+			        ui->tableWidget->setSortingEnabled(false);
+			        ui->tableWidget->insertRow(ui->tableWidget->rowCount());
+			        auto id = ui->tableWidget->rowCount() - 1;
+			        ui->tableWidget->setItem(id, 0, new QTableWidgetItem(url));
+			        ui->tableWidget->setItem(
+			            id, 1, new QTableWidgetItem(QString::number(code)));
+			        ui->tableWidget->setSortingEnabled(true);
 		        }
 	        },
 	        Qt::QueuedConnection);
@@ -32,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(walker.get(), &HttpWalker::started, this,
 	        [&]() {
 		        status->setText("Looking up");
-		        ui->listWidget->clear();
+		        ui->tableWidget->setRowCount(0);
 		        startEnabled = false;
 		        ui->startButton->setText("Stop");
 		        ui->urlEdit->setEnabled(false);

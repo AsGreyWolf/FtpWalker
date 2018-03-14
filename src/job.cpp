@@ -104,7 +104,7 @@ void job::read_status(std::unique_ptr<job> job_ptr) {
 		    return job_ptr->complete(job_ptr->path, 0, {});
 	    });
 }
-std::regex re_header_line{R"R(([^:]*):\s*([^;]*)(?:;\s*(.*))?\r)R",
+std::regex re_header_line{R"R((.*?):\s*(.*?)(?:;\s*(.*))?\r)R",
                           std::regex_constants::ECMAScript |
                               std::regex_constants::optimize};
 void job::read_header(std::unique_ptr<job> job_ptr) {
@@ -152,7 +152,7 @@ void job::read_header(std::unique_ptr<job> job_ptr) {
 	    });
 }
 std::regex re_ahref{
-    R"R(<a(?:\s|\s[^>]*\s)href\s*=\s*("[^>"]*"|'[^>']*'|[^\s>]*)[^>]*>)R",
+    R"R(<a\s.*?\bhref\s*=\s*(".*?"|'.*?'|\S*).*?>)R",
     std::regex_constants::ECMAScript | std::regex_constants::optimize |
         std::regex_constants::icase};
 void job::recieve(std::unique_ptr<job> job_ptr) {
