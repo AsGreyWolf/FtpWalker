@@ -152,7 +152,7 @@ void job::read_header(std::unique_ptr<job> job_ptr) {
 	    });
 }
 std::regex re_ahref{
-    R"R(<a\s.*?\bhref\s*=\s*(".*?"|'.*?'|\S*).*?>)R",
+    R"R(<a\s.*?\bhref\s*=\s*(".*?"|'.*?'|[^\s>]*).*?>)R",
     std::regex_constants::ECMAScript | std::regex_constants::optimize |
         std::regex_constants::icase};
 void job::recieve(std::unique_ptr<job> job_ptr) {
