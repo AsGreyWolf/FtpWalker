@@ -2,6 +2,7 @@
 #define HTTP_WALKER_H
 
 // #define BOOST_ASIO_ENABLE_HANDLER_TRACKING 1
+#include "Walk.hpp"
 #include <QtCore/QObject>
 #include <functional>
 #include <memory>
@@ -11,7 +12,7 @@ class Walk;
 class HttpWalker : public QObject {
 	Q_OBJECT
 
-	std::unique_ptr<Walk> current_walk;
+	Walk current_walk;
 
 public:
 	HttpWalker();

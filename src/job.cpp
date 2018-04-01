@@ -2,7 +2,7 @@
 
 #include <regex>
 
-std::string collapse(std::string s) {
+static std::string collapse(std::string s) {
 	s = s.substr(0, s.find('#'));
 	while (true) {
 		size_t pos = s.find("/../");
@@ -17,10 +17,10 @@ std::string collapse(std::string s) {
 	}
 	return s;
 }
-std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*",
-                  std::regex_constants::ECMAScript |
-                      std::regex_constants::optimize};
-std::string fix_link(job *job_ptr, std::string link, bool &external) {
+static std::regex re_ext{"(\\w*):(?:\\/\\/([\\w.]*)(.*))?.*",
+                         std::regex_constants::ECMAScript |
+                             std::regex_constants::optimize};
+static std::string fix_link(job *job_ptr, std::string link, bool &external) {
 	std::smatch m;
 	external = std::regex_match(link, m, re_ext);
 	if (external && m[1] == "http" && m[2] == job_ptr->host) {
@@ -48,20 +48,20 @@ std::string fix_link(job *job_ptr, std::string link, bool &external) {
 	}
 	return link;
 }
-void job::connect(std::unique_ptr<job> job_ptr,
-                  boost::asio::ip::tcp::resolver::endpoint_type endpoint) {
+void connect(std::unique_ptr<job> job_ptr,
+             boost::asio::ip::tcp::resolver::endpoint_type endpoint) {
 	// std::cout << "CONNECT " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
-	raw_ptr->socket.async_connect(endpoint,
-	                              [ job_ptr = move(job_ptr), endpoint ](
-	                                  boost::system::error_code ec) mutable {
-		                              if (!ec) {
-			                              return send(move(job_ptr));
-		                              }
-		                              return job::connect(move(job_ptr), endpoint);
-	                              });
+	raw_ptr->socket.async_connect(
+	    endpoint,
+	    [job_ptr = move(job_ptr), endpoint](boost::system::error_code ec) mutable {
+		    if (!ec) {
+			    return send(move(job_ptr));
+		    }
+		    return connect(move(job_ptr), endpoint);
+	    });
 }
-void job::send(std::unique_ptr<job> job_ptr) {
+void send(std::unique_ptr<job> job_ptr) {
 	// std::cout << "SEND " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
 	std::ostream os{&raw_ptr->write_buffer};
@@ -82,7 +82,7 @@ void job::send(std::unique_ptr<job> job_ptr) {
 		    return job_ptr->complete(job_ptr->path, 2, {});
 	    });
 }
-void job::read_status(std::unique_ptr<job> job_ptr) {
+void read_status(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_STATUS " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
 	boost::asio::async_read_until(
@@ -104,10 +104,10 @@ void job::read_status(std::unique_ptr<job> job_ptr) {
 		    return job_ptr->complete(job_ptr->path, 0, {});
 	    });
 }
-std::regex re_header_line{R"R((.*?):\s*(.*?)(?:;\s*(.*))?\r)R",
-                          std::regex_constants::ECMAScript |
-                              std::regex_constants::optimize};
-void job::read_header(std::unique_ptr<job> job_ptr) {
+static std::regex re_header_line{R"R((.*?):\s*(.*?)(?:;\s*(.*))?\r)R",
+                                 std::regex_constants::ECMAScript |
+                                     std::regex_constants::optimize};
+void read_header(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_HEADER " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
 	boost::asio::async_read_until(
@@ -151,11 +151,11 @@ void job::read_header(std::unique_ptr<job> job_ptr) {
 		    return job_ptr->complete(job_ptr->path, 1, {});
 	    });
 }
-std::regex re_ahref{
+static std::regex re_ahref{
     R"R(<a\s.*?\bhref\s*=\s*(".*?"|'.*?'|[^\s>]*).*?>)R",
     std::regex_constants::ECMAScript | std::regex_constants::optimize |
         std::regex_constants::icase};
-void job::recieve(std::unique_ptr<job> job_ptr) {
+void recieve(std::unique_ptr<job> job_ptr) {
 	// std::cout << "READ_CONTENT " << job_ptr->path << std::endl;
 	auto raw_ptr = job_ptr.get();
 	boost::asio::async_read(

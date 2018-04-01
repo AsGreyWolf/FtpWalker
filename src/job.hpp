@@ -24,13 +24,13 @@ struct job {
 	        complete_)
 	    : socket{ctx_}, host{host_}, path{move(path_)}, complete{move(complete_)} {
 	}
-
-	static void connect(std::unique_ptr<job> job_ptr,
-	                    boost::asio::ip::tcp::resolver::endpoint_type endpoints);
-	static void send(std::unique_ptr<job> job_ptr);
-	static void read_status(std::unique_ptr<job> job_ptr);
-	static void read_header(std::unique_ptr<job> job_ptr);
-	static void recieve(std::unique_ptr<job> job_ptr);
 };
+
+void connect(std::unique_ptr<job> job_ptr,
+             boost::asio::ip::tcp::resolver::endpoint_type endpoints);
+void send(std::unique_ptr<job> job_ptr);
+void read_status(std::unique_ptr<job> job_ptr);
+void read_header(std::unique_ptr<job> job_ptr);
+void recieve(std::unique_ptr<job> job_ptr);
 
 #endif /* end of include guard: JOB_HPP */

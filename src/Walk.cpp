@@ -7,87 +7,105 @@
 
 using std::move;
 
-struct Walk::impl {
-	std::string host;
-	std::function<void()> started;
-	std::function<void()> finished;
-	std::function<void(size_t, size_t)> progress;
-	std::function<void(std::string, unsigned short)> found;
+class Walk::executor {
+	std::string host_;
+	callbacks cbks_;
 
-	boost::asio::ip::tcp::resolver::endpoint_type endpoint;
-	std::mutex enqueued_mutex;
-	std::unordered_set<std::string> enqueued;
-	std::mutex visited_mutex;
-	std::unordered_set<std::string> visited;
+	boost::asio::ip::tcp::resolver::endpoint_type endpoint_;
+	std::mutex enqueued_mutex_;
+	std::unordered_set<std::string> enqueued_;
+	std::mutex visited_mutex_;
+	std::unordered_set<std::string> visited_;
 
-	boost::asio::io_service ctx;
-	std::future<void> stop;
+	boost::asio::io_service *ctx_;
+	std::future<void> stop_;
+
+public:
+	executor(boost::asio::io_service &ctx, std::string host, callbacks cbks,
+	         std::future<void> stop);
+	void run();
 	void enqueue(const std::string &url);
+	~executor();
 };
+class Walk::executor_task {
+	boost::asio::io_service ctx_;
+	std::future<void> executor_ftr_;
 
-Walk::Walk(std::string url, std::function<void()> started,
-           std::function<void()> finished,
-           std::function<void(size_t, size_t)> progress,
-           std::function<void(std::string, unsigned short)> found)
-    : pimpl_{std::make_unique<Walk::impl>()} {
+public:
+	executor_task(std::string host, callbacks cbks, std::future<void> stop,
+	              const std::string &path)
+	    : ctx_{}, executor_ftr_{std::async(
+	                  std::launch::async,
+	                  [host = move(host), cbks = move(cbks), ftr = move(stop),
+	                   path = path, ctx = &ctx_]() mutable {
+		                  executor exec{*ctx, move(host), move(cbks), move(ftr)};
+		                  exec.enqueue(path);
+		                  exec.run();
+	                  })} {}
+	executor_task(const executor_task &) = delete;
+	executor_task(executor_task &&) = delete;
+	executor_task &operator=(const executor_task &) = delete;
+	executor_task &operator=(executor_task &&) = delete;
+	~executor_task() { ctx_.stop(); }
+};
+Walk::Walk() : executor_task_{}, to_stop_{} {}
+Walk::Walk(const std::string &url, callbacks cbks) : to_stop_{} {
 	// std::cout << "WALK CONSTRUCTOR" << std::endl;
-	pimpl_->host = url.substr(0, url.find('/'));
-	pimpl_->started = move(started);
-	pimpl_->finished = move(finished);
-	pimpl_->progress = move(progress);
-	pimpl_->found = move(found);
+	std::string host = url.substr(0, url.find('/'));
 	std::string path = url.substr(url.find('/'));
-	pimpl_->stop = to_stop_.get_future();
-	task_ = std::async(
-	    std::launch::async, [ state = pimpl_.get(), path = move(path) ] {
-		    state->started();
-		    {
-			    boost::asio::ip::tcp::resolver resolver{state->ctx};
-			    auto endpoints = resolver.resolve({state->host, "80"});
-			    boost::asio::ip::tcp::socket tester{state->ctx};
-			    state->endpoint = connect(tester, endpoints);
-			    // std::cout << state->endpoint << std::endl;
-		    }
-		    state->enqueue(path);
-		    {
-			    std::vector<std::future<void>> cotasks(
-			        std::max(2u, std::thread::hardware_concurrency()) - 1);
-			    for (auto &t : cotasks)
-				    t = std::async(std::launch::async, [&ctx = state->ctx] { ctx.run(); });
-		    }
-		    state->finished();
-	    });
+	executor_task_ = std::make_unique<executor_task>(move(host), move(cbks),
+	                                                 to_stop_.get_future(), path);
 }
-Walk::~Walk() { pimpl_->ctx.stop(); }
-
-void Walk::impl::enqueue(const std::string &path) {
+Walk::Walk(Walk &&) = default;
+Walk &Walk::operator=(Walk &&) = default;
+Walk::~Walk() {}
+Walk::executor::executor(boost::asio::io_service &ctx, std::string host,
+                         callbacks cbks, std::future<void> stop)
+    : host_{move(host)}, cbks_{move(cbks)}, ctx_{&ctx}, stop_{move(stop)} {
+	cbks_.started();
+	{
+		boost::asio::ip::tcp::resolver resolver{*ctx_};
+		auto endpoints = resolver.resolve({host_, "80"});
+		boost::asio::ip::tcp::socket tester{*ctx_};
+		endpoint_ = connect(tester, endpoints);
+		// std::cout << state->endpoint << std::endl;
+	}
+}
+void Walk::executor::run() {
+	std::vector<std::future<void>> cotasks(
+	    std::max(2u, std::thread::hardware_concurrency()) - 1);
+	for (auto &t : cotasks)
+		t = std::async(std::launch::async, [ctx = ctx_] { ctx->run(); });
+}
+Walk::executor::~executor() { cbks_.finished(); }
+void Walk::executor::enqueue(const std::string &path) {
 	using std::chrono::operator""s;
-	if (stop.wait_for(0s) != std::future_status::timeout) {
+	if (stop_.wait_for(0s) != std::future_status::timeout) {
 		// std::cout << "TIMEOUT " << path << std::endl;
 		return;
 	}
 	{
-		std::lock_guard lk{enqueued_mutex};
-		if (enqueued.find(path) != enqueued.end())
+		std::lock_guard lk{enqueued_mutex_};
+		if (enqueued_.find(path) != enqueued_.end())
 			return;
 		// std::cout << "ENQUEUE " << path << std::endl;
-		enqueued.insert(path);
-		progress(visited.size(), enqueued.size());
+		enqueued_.insert(path);
+		cbks_.progress(visited_.size(), enqueued_.size());
 	}
 	auto job_ptr = std::make_unique<job>(
-	    ctx, host, path,
+	    *ctx_, host_, path,
 	    [this](const std::string &path, unsigned short status,
 	           std::vector<std::string> links) {
 		    {
-			    std::lock_guard lk{visited_mutex};
-			    visited.insert(path);
+			    std::lock_guard lk{visited_mutex_};
+			    visited_.insert(path);
 			    // std::cout << "FOUND " << path <<
 			    // std::endl;
-			    progress(visited.size(), enqueued.size());
+			    cbks_.progress(visited_.size(), enqueued_.size());
 		    }
-		    found(path, status);
+		    cbks_.found(path, status);
 		    for (auto &link : links)
 			    enqueue(link);
 	    });
-	job::connect(move(job_ptr), endpoint);
+	connect(move(job_ptr), endpoint_);
 }
