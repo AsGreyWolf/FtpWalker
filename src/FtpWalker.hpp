@@ -9,14 +9,14 @@
 #include <string>
 
 class Walk;
-class HttpWalker : public QObject {
+class FtpWalker : public QObject {
 	Q_OBJECT
 
 	Walk current_walk;
 
 public:
-	HttpWalker();
-	~HttpWalker();
+	FtpWalker();
+	~FtpWalker();
 
 public slots:
 	void start(const std::string &url);

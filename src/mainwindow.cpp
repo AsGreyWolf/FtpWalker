@@ -1,18 +1,18 @@
 #include "mainwindow.hpp"
 
-#include "HttpWalker.hpp"
+#include "FtpWalker.hpp"
 #include "ui_untitled.h"
 #include <iostream>
 
 MainWindow::MainWindow(QWidget *parent)
     : startEnabled{true}, ui{std::make_unique<Ui::MainWindow>()},
-      walker{std::make_unique<HttpWalker>()}, status{std::make_unique<QLabel>(
-                                                  this)} {
+      walker{std::make_unique<FtpWalker>()}, status{std::make_unique<QLabel>(
+                                                 this)} {
 	ui->setupUi(this);
 	statusBar()->addWidget(status.get());
-	connect(this, &MainWindow::startGrabbing, walker.get(), &HttpWalker::start);
-	connect(this, &MainWindow::stopGrabbing, walker.get(), &HttpWalker::stop);
-	connect(walker.get(), &HttpWalker::foundItem, this,
+	connect(this, &MainWindow::startGrabbing, walker.get(), &FtpWalker::start);
+	connect(this, &MainWindow::stopGrabbing, walker.get(), &FtpWalker::stop);
+	connect(walker.get(), &FtpWalker::foundItem, this,
 	        [&](QString url, unsigned short code) {
 		        std::cout << url.toStdString() << " " << code << std::endl;
 		        if (code >= 400) {
@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
 		        }
 	        },
 	        Qt::QueuedConnection);
-	connect(walker.get(), &HttpWalker::progress, this,
+	connect(walker.get(), &FtpWalker::progress, this,
 	        [&](size_t current, size_t all) {
 		        // std::cout << current << " " << all << std::endl;
 		        ui->progressBar->setMaximum(all);
@@ -35,7 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
 		                        QString::number(all));
 	        },
 	        Qt::QueuedConnection);
-	connect(walker.get(), &HttpWalker::started, this,
+	connect(walker.get(), &FtpWalker::started, this,
 	        [&]() {
 		        status->setText("Looking up");
 		        ui->tableWidget->setRowCount(0);
@@ -44,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
 		        ui->urlEdit->setEnabled(false);
 	        },
 	        Qt::QueuedConnection);
-	connect(walker.get(), &HttpWalker::finished, this,
+	connect(walker.get(), &FtpWalker::finished, this,
 	        [&]() {
 		        status->setText("Finished " + status->text());
 		        startEnabled = true;

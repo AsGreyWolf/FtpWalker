@@ -8,7 +8,7 @@
 namespace Ui {
 class MainWindow;
 }
-class HttpWalker;
+class FtpWalker;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
@@ -20,7 +20,7 @@ public:
 private:
 	bool startEnabled;
 	std::unique_ptr<Ui::MainWindow> ui;
-	std::unique_ptr<HttpWalker> walker;
+	std::unique_ptr<FtpWalker> walker;
 	std::unique_ptr<QLabel> status;
 
 signals:
