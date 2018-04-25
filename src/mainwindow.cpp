@@ -27,15 +27,15 @@ MainWindow::MainWindow(QWidget *parent)
 	connect(this, &MainWindow::startGrabbing, walker.get(), &FtpWalker::start);
 	connect(this, &MainWindow::stopGrabbing, walker.get(), &FtpWalker::stop);
 	connect(walker.get(), &FtpWalker::foundItem, this,
-	        [&](FtpWalker::DescriptorInfo ds) {
-		        std::cout << ds.name.toStdString() << " " << ds.size << std::endl;
-		        if (ds.size > 0) {
+	        [&](QString name, size_t size) {
+		        std::cout << name.toStdString() << " " << size << std::endl;
+		        if (size > 0) {
 			        ui->tableWidget->setSortingEnabled(false);
 			        ui->tableWidget->insertRow(ui->tableWidget->rowCount());
 			        auto id = ui->tableWidget->rowCount() - 1;
-			        ui->tableWidget->setItem(id, 0, new QTableWidgetItem(ds.name));
-			        ui->tableWidget->setItem(
-			            id, 1, new QTableWidgetItem(QString::number(ds.size)));
+			        ui->tableWidget->setItem(id, 1, new QTableWidgetItem(name));
+			        ui->tableWidget->setItem(id, 0,
+			                                 new QTableWidgetItem(size_human(size)));
 			        ui->tableWidget->setSortingEnabled(true);
 		        }
 	        },

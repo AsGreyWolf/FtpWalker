@@ -12,6 +12,6 @@ void FtpWalker::start(const HostInfo &host, const AuthInfo &auth) {
 	         {[this] { emit started(); }, [this] { emit finished(); },
 	          [this](size_t cur, size_t all) { emit progress(cur, all); },
 	          [this](descriptor_info descr) {
-		          emit foundItem({QString(descr.name.c_str()), descr.size});
+		          emit foundItem(QString(descr.name.c_str()), descr.size);
 	          }}};
 }

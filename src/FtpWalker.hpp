@@ -14,10 +14,6 @@ class FtpWalker : public QObject {
 public:
 	using HostInfo = host_info;
 	using AuthInfo = auth_info;
-	struct DescriptorInfo {
-		QString name;
-		size_t size;
-	};
 	FtpWalker();
 	~FtpWalker();
 
@@ -25,7 +21,7 @@ public slots:
 	void start(const HostInfo &, const AuthInfo &);
 	void stop();
 signals:
-	void foundItem(DescriptorInfo ds);
+	void foundItem(QString name, size_t size);
 	void started();
 	void progress(size_t current, size_t all);
 	void finished();
