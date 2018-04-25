@@ -19,7 +19,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="100,1">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="10,1">
       <property name="sizeConstraint">
        <enum>QLayout::SetDefaultConstraint</enum>
       </property>
@@ -42,39 +42,83 @@
         </attribute>
         <column>
          <property name="text">
-          <string>PATH</string>
+          <string>SIZE</string>
          </property>
         </column>
         <column>
          <property name="text">
-          <string>CODE</string>
+          <string>PATH</string>
          </property>
         </column>
        </widget>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,10,0,0">
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0,0,0,0,0">
         <item>
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>URL:</string>
+           <string>HOST:</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="urlEdit">
+         <widget class="QLineEdit" name="hostEdit">
           <property name="enabled">
            <bool>true</bool>
+          </property>
+          <property name="text">
+           <string>91.222.128.11</string>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QProgressBar" name="progressBar">
-          <property name="enabled">
-           <bool>true</bool>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>PORT:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="portEdit">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>65535</number>
           </property>
           <property name="value">
-           <number>0</number>
+           <number>21</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>LOGIN:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="loginEdit">
+          <property name="text">
+           <string>testftp_guest</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_4">
+          <property name="text">
+           <string>PASSWORD:</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="passwordEdit">
+          <property name="text">
+           <string>12345</string>
+          </property>
+          <property name="echoMode">
+           <enum>QLineEdit::Password</enum>
           </property>
          </widget>
         </item>
@@ -91,11 +135,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusBar">
-   <property name="statusTip">
-    <string/>
-   </property>
-  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <resources/>
  <connections/>

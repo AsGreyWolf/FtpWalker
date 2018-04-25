@@ -5,12 +5,13 @@ FtpWalker::FtpWalker() : current_walk{} {}
 FtpWalker::~FtpWalker() {}
 
 void FtpWalker::stop() { current_walk = {}; }
-void FtpWalker::start(const std::string &url) {
+void FtpWalker::start(const HostInfo &host, const AuthInfo &auth) {
 	current_walk =
-	    Walk{url,
+	    walk{host,
+	         auth,
 	         {[this] { emit started(); }, [this] { emit finished(); },
 	          [this](size_t cur, size_t all) { emit progress(cur, all); },
-	          [this](std::string path, size_t size) {
-		          emit foundItem(QString(path.c_str()), size);
+	          [this](descriptor_info descr) {
+		          emit foundItem({QString(descr.name.c_str()), descr.size});
 	          }}};
 }
