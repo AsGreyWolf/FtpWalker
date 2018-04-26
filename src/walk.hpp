@@ -1,11 +1,9 @@
 #ifndef WALK_HPP
 #define WALK_HPP
 
-#include "connection.hpp"
-#include "defer.hpp"
-#include "executor.hpp"
 #include "types.hpp"
 #include <functional>
+#include <memory>
 
 class walk {
 public:
@@ -15,27 +13,16 @@ public:
 		std::function<void(size_t, size_t)> progress;
 		std::function<void(descriptor_info)> found;
 	};
-	walk() = default;
+	walk();
+	walk(const host_info &host, const auth_info &auth, callbacks cbks);
 	walk(const walk &) = delete;
 	walk(walk &&) = default;
 	walk &operator=(const walk &) = delete;
-	walk &operator=(walk &&) = default;
-	walk(const host_info &host, const auth_info &auth, callbacks cbks);
-	~walk() = default;
+	walk &operator=(walk &&);
+	~walk();
 
 private:
-	class impl {
-		progress_queue<path_info> progress_queue_;
-		callbacks callbacks_;
-		executor executor_;
-		thread_local_storage<std::unique_ptr<connection>> connection_;
-		std::function<void(boost::asio::io_service &, path_info path)> executor_task_;
-		defer stop_;
-
-	public:
-		impl(const host_info &host, const auth_info &auth, callbacks cbks);
-		~impl();
-	};
+	class impl;
 	std::unique_ptr<impl> pimpl_;
 };
 

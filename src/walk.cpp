@@ -1,7 +1,24 @@
 #include "walk.hpp"
+#include "connection.hpp"
+#include "defer.hpp"
+#include "executor.hpp"
 #include <iostream>
+#include <memory>
+
 using std::move;
 
+class walk::impl {
+	progress_queue<path_info> progress_queue_;
+	callbacks callbacks_;
+	executor executor_;
+	thread_local_storage<std::unique_ptr<connection>> connection_;
+	std::function<void(boost::asio::io_service &, path_info path)> executor_task_;
+	defer stop_;
+
+public:
+	impl(const host_info &host, const auth_info &auth, callbacks cbks);
+	~impl();
+};
 walk::impl::impl(const host_info &host, const auth_info &auth, callbacks cbks)
     : progress_queue_{}, callbacks_{move(cbks)}, executor_{}, connection_{},
       executor_task_{[this, host, auth](boost::asio::io_service &ctx,
@@ -41,5 +58,8 @@ walk::impl::impl(const host_info &host, const auth_info &auth, callbacks cbks)
 }
 walk::impl::~impl() { executor_.finish(); }
 
+walk &walk::operator=(walk &&) = default;
+walk::~walk() = default;
+walk::walk() : pimpl_{} {};
 walk::walk(const host_info &host, const auth_info &auth, callbacks cbks)
     : pimpl_{std::make_unique<walk::impl>(host, auth, move(cbks))} {}
