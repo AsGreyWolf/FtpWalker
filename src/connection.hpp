@@ -26,6 +26,7 @@ class connection {
 			result.back().reserve(input_len);
 			std::copy_n(std::istreambuf_iterator<char>{is}, input_len - eol.size(),
 			            std::back_inserter(result.back()));
+			// std::cout << result.back() << std::endl;
 			is.ignore(eol.size() + 1);
 		}
 		return result;
@@ -38,6 +39,7 @@ class connection {
 		result.reserve(input_len);
 		std::copy_n(std::istreambuf_iterator<char>{is}, input_len - eol.size(),
 		            std::back_inserter(result));
+
 		// std::cout << "\t<<< " << result << std::endl;
 		const std::regex answer_parser{R"R((\d{3})\s*(.*))R",
 		                               std::regex_constants::ECMAScript |
@@ -103,13 +105,14 @@ public:
 		auto transfer_port = connect_transfer();
 		ask(150, "LIST " + path);
 		std::regex folder_parser{
-		    R"R(d.{9}\s+(?:\d*\s+){3}(\d*).*?('.+?'|".+?"|[^\s'"]+)\n)R",
+		    R"R(d.{9}\s+(?:\S*\s+){3}(\d*).*?('.+?'|".+?"|[^\s'"]+)\n)R",
 		    std::regex_constants::ECMAScript | std::regex_constants::optimize};
 		for (auto &&line : read_transfer(transfer_port)) {
 			line += '\n';
 			std::smatch match;
 			if (std::regex_match(line, match, folder_parser))
-				result.push_back({path_concat(path, match[2]), std::stoull(match[1])});
+				if (match[2] != ".." && match[2] != ".")
+					result.push_back({path_concat(path, match[2]), std::stoull(match[1])});
 		}
 		throw_if_invalid(226, read_answer());
 		return result;
@@ -119,7 +122,7 @@ public:
 		auto transfer_port = connect_transfer();
 		ask(150, "LIST " + path);
 		std::regex folder_parser{
-		    R"R(-.{9}\s+(?:\d*\s+){3}(\d*).*?('.+?'|".+?"|[^\s'"]+)\n)R",
+		    R"R(-.{9}\s+(?:\S*\s+){3}(\d*).*?('.+?'|".+?"|[^\s'"]+)\n)R",
 		    std::regex_constants::ECMAScript | std::regex_constants::optimize};
 		for (auto &&line : read_transfer(transfer_port)) {
 			line += '\n';

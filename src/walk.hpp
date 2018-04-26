@@ -17,11 +17,11 @@ public:
 	};
 	walk() = default;
 	walk(const walk &) = delete;
-	walk(walk &&);
+	walk(walk &&) = default;
 	walk &operator=(const walk &) = delete;
-	walk &operator=(walk &&);
+	walk &operator=(walk &&) = default;
 	walk(const host_info &host, const auth_info &auth, callbacks cbks);
-	~walk();
+	~walk() = default;
 
 private:
 	class impl {
@@ -34,6 +34,7 @@ private:
 
 	public:
 		impl(const host_info &host, const auth_info &auth, callbacks cbks);
+		~impl();
 	};
 	std::unique_ptr<impl> pimpl_;
 };

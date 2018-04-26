@@ -30,6 +30,12 @@ MainWindow::MainWindow(QWidget *parent)
 	        [&](QString name, size_t size) {
 		        std::cout << name.toStdString() << " " << size << std::endl;
 		        if (size > 0) {
+			        auto stdname = name.toStdString();
+			        if (stdname.rfind('.') != stdname.rfind('/') + 1 &&
+			            stdname.rfind('.') != std::string::npos) {
+				        extensionSizes[stdname.substr(stdname.rfind('.'))] += size;
+			        }
+
 			        ui->tableWidget->setSortingEnabled(false);
 			        ui->tableWidget->insertRow(ui->tableWidget->rowCount());
 			        auto id = ui->tableWidget->rowCount() - 1;
@@ -68,6 +74,10 @@ MainWindow::MainWindow(QWidget *parent)
 		        ui->portEdit->setEnabled(true);
 		        ui->loginEdit->setEnabled(true);
 		        ui->passwordEdit->setEnabled(true);
+		        for (auto &&ext : extensionSizes) {
+			        std::cout << ext.first << ' ' << size_human(ext.second).toStdString()
+			                  << std::endl;
+		        }
 	        },
 	        Qt::QueuedConnection);
 	connect(ui->startButton, &QPushButton::clicked, [=, this] {

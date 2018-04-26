@@ -5,6 +5,7 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QMainWindow>
 #include <memory>
+#include <unordered_map>
 
 namespace Ui {
 class MainWindow;
@@ -14,6 +15,8 @@ class FtpWalker;
 
 class MainWindow : public QMainWindow {
 	Q_OBJECT
+
+	std::unordered_map<std::string, size_t> extensionSizes;
 
 public:
 	explicit MainWindow(QWidget *parent = 0);
